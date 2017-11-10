@@ -60,19 +60,23 @@ class RemoveWires extends Transform {
     val otherStmts = mutable.ArrayBuffer.empty[Statement]
     // Add nodes and wire connection here
     val netlist = mutable.LinkedHashMap.empty[WrappedExpression, (Expression, Info)]
+    // Info at definition of wires for combining into node
+    val wireInfo = mutable.HashMap.empty[WrappedExpression, Info]
 
     def onStmt(stmt: Statement): Statement = {
       stmt match {
         case DefNode(info, name, expr) =>
           netlist(we(WRef(name))) = (expr, info)
         case wire: DefWire if !wire.tpe.isInstanceOf[AnalogType] => // Remove all non-Analog wires
+          wireInfo(WRef(wire)) = wire.info
         case decl: IsDeclaration => // Keep all declarations except for nodes and non-Analog wires
           decls += decl
-        case con @ Connect(info, lhs, rhs) => kind(lhs) match {
+        case con @ Connect(cinfo, lhs, rhs) => kind(lhs) match {
           case WireKind =>
             // Be sure to pad the rhs since nodes get their type from the rhs
             val paddedRhs = ConstantPropagation.pad(rhs, lhs.tpe)
-            netlist(we(lhs)) = (paddedRhs, info)
+            val dinfo = wireInfo(lhs)
+            netlist(we(lhs)) = (paddedRhs, MultiInfo(Seq(dinfo, cinfo)))
           case _ => otherStmts += con // Other connections just pass through
         }
         case invalid @ IsInvalid(info, expr) =>
