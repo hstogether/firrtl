@@ -7,9 +7,10 @@ import firrtl.ir._
 import firrtl.Utils._
 import firrtl.Mappers._
 import firrtl.WrappedExpression._
-import firrtl.graph.MutableDiGraph
+import firrtl.graph.{DiGraph, MutableDiGraph}
 
 import scala.collection.mutable
+import scala.util.{Try, Success, Failure}
 
 /** Replace wires with nodes in a legal, flow-forward order
   *
@@ -39,7 +40,7 @@ class RemoveWires extends Transform {
 
   // Transform netlist into DefNodes
   private def getOrderedNodes(
-      netlist: mutable.LinkedHashMap[WrappedExpression, (Expression, Info)]): Seq[DefNode] = {
+      netlist: mutable.LinkedHashMap[WrappedExpression, (Expression, Info)]): Try[Seq[DefNode]] = {
     val digraph = new MutableDiGraph[WrappedExpression]
     for ((sink, (expr, _)) <- netlist) {
       digraph.addVertex(sink)
@@ -51,11 +52,13 @@ class RemoveWires extends Transform {
     // We could reverse edge directions and not have to do this reverse, but doing it this way does
     // a MUCH better job of preserving the logic order as expressed by the designer
     // See RemoveWireTests for illustration
-    val ordered = digraph.linearize.reverse
-    ordered.map { key =>
-      val WRef(name, _,_,_) = key.e1
-      val (rhs, info) = netlist(key)
-      DefNode(info, name, rhs)
+    Try {
+      val ordered = digraph.linearize.reverse
+      ordered.map { key =>
+        val WRef(name, _,_,_) = key.e1
+        val (rhs, info) = netlist(key)
+        DefNode(info, name, rhs)
+      }
     }
   }
 
@@ -102,10 +105,18 @@ class RemoveWires extends Transform {
     }
 
     m match {
-      case Module(info, name, ports, body) =>
+      case mod @ Module(info, name, ports, body) =>
         onStmt(body)
-        val logic = getOrderedNodes(netlist)
-        Module(info, name, ports, Block(decls ++ logic ++ otherStmts))
+        getOrderedNodes(netlist) match {
+          case Success(logic) =>
+            Module(info, name, ports, Block(decls ++ logic ++ otherStmts))
+          // If we hit a CyclicException, just abort removing wires
+          case Failure(_: DiGraph[_]#CyclicException) =>
+            logger.warn(s"Cycle found in module $name, " +
+              "wires will not be removed which can prevent optimizations!")
+            mod
+          case Failure(other) => throw other
+        }
       case m: ExtModule => m
     }
   }
