@@ -7,7 +7,7 @@ import firrtl.ir._
 import firrtl.Utils._
 import firrtl.Mappers._
 import firrtl.WrappedExpression._
-import firrtl.graph.DiGraph
+import firrtl.graph.MutableDiGraph
 
 import scala.collection.mutable
 
@@ -21,17 +21,15 @@ class RemoveWires extends Transform {
   def inputForm = LowForm
   def outputForm = LowForm
 
-  // Extract all referential expressions from a possibly nested expression
-  // This is similar to the function in DeadCodeElimination but also accepts WSubIndex
-  // TODO could this be generalized by supporting WSubAccess and thus not doing error checking?
-  private def extractRefs(expr: Expression): Seq[Expression] = {
-    val refs = mutable.ArrayBuffer.empty[Expression]
+  // Extract all expressions that are references to a Wire or Node
+  // Since we are operating on LowForm, they can only be WRefs
+  private def extractNodeWireRefs(expr: Expression): Seq[WRef] = {
+    val refs = mutable.ArrayBuffer.empty[WRef]
     def rec(e: Expression): Expression = {
       e match {
-        case expr @ (_: WRef | _: WSubField | _: WSubIndex) => refs += expr
+        case ref @ WRef(_,_, WireKind | NodeKind, _) => refs += ref
         case nested @ (_: Mux | _: DoPrim | _: ValidIf) => nested map rec
-        case ignore @ (_: Literal) => // Do nothing
-        case unexpected => throwInternalError
+        case _ => // Do nothing
       }
       e
     }
@@ -42,10 +40,14 @@ class RemoveWires extends Transform {
   // Transform netlist into DefNodes
   private def getOrderedNodes(
       netlist: mutable.LinkedHashMap[WrappedExpression, (Expression, Info)]): Seq[DefNode] = {
-    val edges = netlist.map { case (sink, (expr, _)) => sink -> extractRefs(expr).map(we(_)).toSet }
-    val edgeGraph = DiGraph(edges.toMap)
+    val digraph = new MutableDiGraph[WrappedExpression]
+    for ((sink, (expr, _)) <- netlist) {
+      for (source <- extractNodeWireRefs(expr)) {
+        digraph.addPairWithEdge(source, sink)
+      }
+    }
 
-    val ordered = edgeGraph.linearize.reverse
+    val ordered = digraph.linearize
     ordered.map { key =>
       val WRef(name, _,_,_) = key.e1
       val (rhs, info) = netlist(key)
