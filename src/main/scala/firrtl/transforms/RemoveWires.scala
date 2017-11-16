@@ -42,6 +42,7 @@ class RemoveWires extends Transform {
       netlist: mutable.LinkedHashMap[WrappedExpression, (Expression, Info)]): Seq[DefNode] = {
     val digraph = new MutableDiGraph[WrappedExpression]
     for ((sink, (expr, _)) <- netlist) {
+      digraph.addVertex(sink)
       for (source <- extractNodeWireRefs(expr)) {
         digraph.addPairWithEdge(source, sink)
       }
