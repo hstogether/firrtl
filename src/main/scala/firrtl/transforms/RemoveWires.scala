@@ -44,11 +44,14 @@ class RemoveWires extends Transform {
     for ((sink, (expr, _)) <- netlist) {
       digraph.addVertex(sink)
       for (source <- extractNodeWireRefs(expr)) {
-        digraph.addPairWithEdge(source, sink)
+        digraph.addPairWithEdge(sink, source)
       }
     }
 
-    val ordered = digraph.linearize
+    // We could reverse edge directions and not have to do this reverse, but doing it this way does
+    // a MUCH better job of preserving the logic order as expressed by the designer
+    // See RemoveWireTests for illustration
+    val ordered = digraph.linearize.reverse
     ordered.map { key =>
       val WRef(name, _,_,_) = key.e1
       val (rhs, info) = netlist(key)

@@ -104,4 +104,20 @@ class RemoveWiresSpec extends FirrtlFlatSpec {
     )
   }
 
+  it should "do a reasonable job preserving input order for unrelatd logic" in {
+    val result = compileBody(s"""
+      |input a : UInt<8>
+      |input b : UInt<8>
+      |output z : UInt<8>
+      |node x = not(a)
+      |node y = not(b)
+      |z <= and(x, y)""".stripMargin
+    )
+    val (nodes, wires) = getNodesAndWires(result.circuit)
+    wires.size should be (0)
+    nodes.map(_.serialize) should be (
+      Seq("node x = not(a)",
+          "node y = not(b)")
+    )
+  }
 }
