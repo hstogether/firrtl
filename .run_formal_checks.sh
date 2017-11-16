@@ -1,3 +1,4 @@
+#!/bin/bash
 set -e
 # Run formal check only for PRs
 if [ $TRAVIS_PULL_REQUEST = "false" ]; then
