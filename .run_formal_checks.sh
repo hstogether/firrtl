@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 # Run formal check only for PRs
 if [ $TRAVIS_PULL_REQUEST = "false" ]; then
@@ -14,5 +14,5 @@ else
     git remote set-branches origin $TRAVIS_BRANCH && git fetch
     git checkout $TRAVIS_BRANCH
     git checkout -
-    bash ./scripts/formal_equiv.sh HEAD $TRAVIS_BRANCH
+    ./scripts/formal_equiv.sh HEAD $TRAVIS_BRANCH
 fi
