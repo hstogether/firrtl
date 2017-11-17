@@ -35,6 +35,13 @@ FILE1=$RET
 make_verilog $HASH2
 FILE2=$RET
 
+stayin_alive () {
+  while true; do
+    echo -en "\a"
+    sleep 10
+  done
+}
+
 echo "Comparing $FILE1 and $FILE2"
 
 if cmp -s $FILE1 $FILE2; then
@@ -42,6 +49,7 @@ if cmp -s $FILE1 $FILE2; then
     exit 0
 else
     echo "Running equivalence check using Yosys"
+    stayin_alive &
     yosys -q -p "
       read_verilog $FILE1
       rename Rob top1
