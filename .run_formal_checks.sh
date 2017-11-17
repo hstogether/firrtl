@@ -15,4 +15,5 @@ else
     git checkout $TRAVIS_BRANCH
     git checkout -
     ./scripts/formal_equiv.sh HEAD $TRAVIS_BRANCH
+    echo "Done with formal_equiv!"
 fi
