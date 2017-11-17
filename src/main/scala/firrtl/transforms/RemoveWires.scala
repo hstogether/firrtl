@@ -121,8 +121,12 @@ class RemoveWires extends Transform {
     }
   }
 
+  private val cleanup = Seq(
+    passes.ResolveKinds
+  )
+
   def execute(state: CircuitState): CircuitState = {
-    val newCircuit = state.circuit map onModule
-    state.copy(circuit = newCircuit)
+    val result = state.copy(circuit = state.circuit map onModule)
+    cleanup.foldLeft(result) { case (in, xform) => xform.execute(in) }
   }
 }
