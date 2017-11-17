@@ -37,7 +37,7 @@ FILE2=$RET
 
 stayin_alive () {
   while true; do
-    echo -en "\a"
+    echo -n "."
     sleep 10
   done
 }
