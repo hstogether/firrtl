@@ -42,7 +42,7 @@ if cmp -s $FILE1 $FILE2; then
     exit 0
 else
     echo "Running equivalence check using Yosys"
-    yosys -q -p "
+    travis_wait 90 yosys -q -p "
       read_verilog $FILE1
       rename Rob top1
       read_verilog $FILE2
