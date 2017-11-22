@@ -7,7 +7,7 @@ import firrtl.ir._
 import firrtl.Utils._
 import firrtl.Mappers._
 import firrtl.WrappedExpression._
-import firrtl.graph.{DiGraph, MutableDiGraph}
+import firrtl.graph.{DiGraph, MutableDiGraph, CyclicException}
 
 import scala.collection.mutable
 import scala.util.{Try, Success, Failure}
@@ -111,7 +111,7 @@ class RemoveWires extends Transform {
           case Success(logic) =>
             Module(info, name, ports, Block(decls ++ logic ++ otherStmts))
           // If we hit a CyclicException, just abort removing wires
-          case Failure(_: DiGraph[_]#CyclicException) =>
+          case Failure(_: CyclicException) =>
             logger.warn(s"Cycle found in module $name, " +
               "wires will not be removed which can prevent optimizations!")
             mod
