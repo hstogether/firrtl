@@ -14,6 +14,6 @@ else
     git remote set-branches origin $TRAVIS_BRANCH && git fetch
     git checkout $TRAVIS_BRANCH
     git checkout -
-    ./scripts/formal_equiv.sh HEAD $TRAVIS_BRANCH
+    ./scripts/formal_equiv.sh HEAD $TRAVIS_BRANCH Rob
     echo "Done with formal_equiv!"
 fi
