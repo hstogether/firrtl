@@ -22,6 +22,6 @@ else
     git remote set-branches origin $TRAVIS_BRANCH && git fetch
     git checkout $TRAVIS_BRANCH
     git checkout -
+    cp regress/$DUT.fir $DUT.fir
     ./scripts/formal_equiv.sh HEAD $TRAVIS_BRANCH $DUT
-    echo "Done with formal_equiv!"
 fi
