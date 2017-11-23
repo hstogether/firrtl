@@ -40,4 +40,4 @@ jobs:
         - ./.run_formal_checks.sh FPU
     - stage: test
       script:
-        - ./.run_formal_checks.sh DCache
+        - ./.run_formal_checks.sh ICache
